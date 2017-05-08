@@ -4,7 +4,7 @@ import argparse
 import requests as rq
 from bs4 import BeautifulSoup as bs
 
-key = input("Enter sessionID:")
+key = input("Enter sessionID: ")
 print(key)
 cookie={"JSESSIONID": key}
 print(cookie)
@@ -19,7 +19,9 @@ itl_cookies=dict(sp_tc)
 print(itl_cookies)
 
 base_url = "https://ntnu.itslearning.com/"
-url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID=3204092"
+
+url = input("Enter folder link: ")
+
 
 path = os.path.abspath(os.path.curdir)
 newpath = os.path.join(path,"scrape")
