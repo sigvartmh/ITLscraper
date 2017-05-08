@@ -1,0 +1,3 @@
+beautifulsoup4==4.6.0
+html2text==2016.9.19
+requests==2.13.0
