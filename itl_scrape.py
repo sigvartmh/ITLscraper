@@ -223,8 +223,7 @@ class itslearning_scraper():
             Process(target=self.find_files, args=(table,)).start()
             os.chdir('..')
 
-    def download_one(self):
-        course_url = input("Emne link:")
+    def download_one(self, url):
         folder_title=input("folder title:")
         r = rq.get(course_url, cookies=self.cookies)
         course_path = os.path.join(os.path.abspath(os.path.curdir))
@@ -243,4 +242,8 @@ class itslearning_scraper():
 if __name__ == '__main__':
     scraper = itslearning_scraper()
     scraper.enter()
-    scraper.download_all()
+    url = input("Enter course url or press enter to download all active courses:")
+    if url:
+        scraper.download_one(url)
+    else:
+        scraper.download_all()
