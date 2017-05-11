@@ -34,9 +34,21 @@ print(itl_cookies)
 
 base_url = "https://ntnu.itslearning.com/"
 
-
-
-url = input("Enter folder link: ")
+c = rq.get("https://ntnu.itslearning.com/Course/AllCourses.aspx", cookies=itl_cookies)
+print(c.url)
+p = bs(c.text, "html.parser")
+course = p.find("table",{"class":"h-table-show-first-4-columns"})
+t = course.find_all("a",{"class":"ccl-iconlink"})
+print(course)
+print(t)
+courses = []
+course_title = {}
+for link in t:
+    title = link.contents[0].contents[0]
+    course_title[link.get("href")]=title
+    courses.append(link.get("href"))
+print(courses)
+print(course_title)
 
 
 path = os.path.abspath(os.path.curdir)
@@ -190,9 +202,17 @@ def find_files(folders):
 
 #print(args.session_cookie)
 #key = args.session_cookie
-
-r = rq.get(url, cookies=itl_cookies)
-print(r.url)
-table = find_folder_table(r.text)
-find_files(table)
+folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
+for course in courses:
+    r = rq.get(base_url+course, cookies=itl_cookies)
+    course_path = os.path.join(os.path.abspath(os.path.curdir))
+    make_folder(course_path, course_title[course])
+    folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
+    print("folder id",folder_id)
+    print("folder_url"+folder_id)
+    r = rq.get(folder_url+folder_id, cookies=itl_cookies)
+    print(r.url)
+    table = find_folder_table(r.text)
+    find_files(table)
+    os.chdir('..')
 
