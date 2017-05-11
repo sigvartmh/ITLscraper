@@ -203,16 +203,28 @@ def find_files(folders):
 #print(args.session_cookie)
 #key = args.session_cookie
 folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
-for course in courses:
-    r = rq.get(base_url+course, cookies=itl_cookies)
+course_url = input("Emne link or leave blank to download all:")
+if course_url:
+    folder_title=input("folder title:")
+    r = rq.get(course_url, cookies=itl_cookies)
     course_path = os.path.join(os.path.abspath(os.path.curdir))
-    make_folder(course_path, course_title[course])
+    make_folder(course_path, folder_title)
     folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
-    print("folder id",folder_id)
-    print("folder_url"+folder_id)
     r = rq.get(folder_url+folder_id, cookies=itl_cookies)
-    print(r.url)
+    r = rq.get(folder_url+folder_id, cookies=itl_cookies)
     table = find_folder_table(r.text)
     find_files(table)
-    os.chdir('..')
+else:
+    for course in courses:
+        r = rq.get(base_url+course, cookies=itl_cookies)
+        course_path = os.path.join(os.path.abspath(os.path.curdir))
+        make_folder(course_path, course_title[course])
+        folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
+        print("folder id",folder_id)
+        print("folder_url"+folder_id)
+        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
+        print(r.url)
+        table = find_folder_table(r.text)
+        find_files(table)
+        os.chdir('..')
 
