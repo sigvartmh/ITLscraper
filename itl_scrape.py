@@ -2,15 +2,29 @@ import os
 import re
 import argparse
 import requests as rq
+import mechanicalsoup as ms
+
 from bs4 import BeautifulSoup as bs
+from getpass import getpass
 
-key = input("Enter sessionID: ")
-print(key)
-cookie={"JSESSIONID": key}
+url = "https://innsida.ntnu.no/lms-ntnu"
+b = ms.StatefulBrowser()
+
+login = input("Enter NTNU-username: ")
+password = getpass("Enter your NTNU-password: ")
+b.open(url)
+b.select_form("form[name=f]")
+b["feidename"]=login
+b["password"]=password
+b.submit_selected()
+b.select_form("form[action=https://sats.itea.ntnu.no/sso-wrapper/feidelogin]")
+b.submit_selected()
+key = b.session.cookies.get_dict()
+
+cookie={"JSESSIONID": key["JSESSIONID"]}
 print(cookie)
-login = "https://innsida.ntnu.no/lms-ntnu"
 
-r = rq.get(login, cookies=cookie)
+r = rq.get(url, cookies=cookie)
 print(r.url)
 
 tc = r.request.headers["Cookie"].split(";")
@@ -19,6 +33,8 @@ itl_cookies=dict(sp_tc)
 print(itl_cookies)
 
 base_url = "https://ntnu.itslearning.com/"
+
+
 
 url = input("Enter folder link: ")
 
