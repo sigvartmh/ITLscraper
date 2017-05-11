@@ -3,12 +3,14 @@ import re
 import argparse
 import requests as rq
 import mechanicalsoup as ms
+import html2text
 
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
 
-url = "https://innsida.ntnu.no/lms-ntnu"
 b = ms.StatefulBrowser()
+h = html2text.HTML2Text()
+url = "https://innsida.ntnu.no/lms-ntnu"
 
 login = input("Enter NTNU-username: ")
 password = getpass("Enter your NTNU-password: ")
@@ -117,6 +119,15 @@ def find_essay_files(html):
     three = bs(html, "html.parser")
     attached_files=three.find("div", {"id":"EssayDetailedInformation_FileListWrapper_FileList"})
     handin_files=three.find("div", {"id":"DF_FileList"})
+    text=three.find("div", {"class":"h-userinput itsl-assignment-description"})
+    if text:
+        title = three.find("span", {"id":"ctl05_TT"}).contents[0]
+        text = h.handle(str(text))
+        fp = os.path.join(os.path.abspath(os.path.curdir), title)
+        #convert to md?
+        with open(fp+".md", "wb") as note:
+            note.write(bytes(text.encode("utf-8")))
+            note.close()
     if attached_files:
         find_file(str(attached_files))
     if handin_files:
@@ -141,14 +152,13 @@ def find_link(html):
         shortcut.write(b'[InternetShortcut]\n')
         shortcut.write(bytes(r'URL={}'.format(target).encode("utf-8")))
         shortcut.close()
-import html2text
+
 def save_note(html):
     three = bs(html, "html.parser")
     title = three.find("h1").contents[0].contents[1]
     print(title)
     text = three.find("div", {"class":"h-userinput"})
     print(text.contents[0])
-    h = html2text.HTML2Text()
     text = h.handle(str(text))
     fp = os.path.join(os.path.abspath(os.path.curdir), title)
     #convert to md?
