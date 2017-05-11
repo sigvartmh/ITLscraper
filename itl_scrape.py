@@ -1,201 +1,201 @@
 import os
+import sys
 import re
 import argparse
 import requests as rq
 import mechanicalsoup as ms
 import html2text
 
+from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
 
-b = ms.StatefulBrowser()
-h = html2text.HTML2Text()
-url = "https://innsida.ntnu.no/lms-ntnu"
-
-login = input("Enter NTNU-username: ")
-password = getpass("Enter your NTNU-password: ")
-b.open(url)
-b.select_form("form[name=f]")
-b["feidename"]=login
-b["password"]=password
-b.submit_selected()
-b.select_form("form[action=https://sats.itea.ntnu.no/sso-wrapper/feidelogin]")
-b.submit_selected()
-key = b.session.cookies.get_dict()
-
-cookie={"JSESSIONID": key["JSESSIONID"]}
-print(cookie)
-
-r = rq.get(url, cookies=cookie)
-print(r.url)
-
-tc = r.request.headers["Cookie"].split(";")
-sp_tc = [[elm.split("=",1)[0].strip(), elm.split("=",1)[1].strip()] for elm in tc]
-itl_cookies=dict(sp_tc)
-print(itl_cookies)
-
 base_url = "https://ntnu.itslearning.com/"
-
-c = rq.get("https://ntnu.itslearning.com/Course/AllCourses.aspx", cookies=itl_cookies)
-print(c.url)
-p = bs(c.text, "html.parser")
-course = p.find("table",{"class":"h-table-show-first-4-columns"})
-t = course.find_all("a",{"class":"ccl-iconlink"})
-print(course)
-print(t)
-courses = []
-course_title = {}
-for link in t:
-    title = link.contents[0].contents[0]
-    course_title[link.get("href")]=title
-    courses.append(link.get("href"))
-print(courses)
-print(course_title)
-
-
-path = os.path.abspath(os.path.curdir)
-newpath = os.path.join(path,"scrape")
-global failure
-failure=0
-
-if not os.path.exists(newpath):
-    os.makedirs(newpath)
-print(path)
-print(newpath)
-os.chdir(newpath)
-
+folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
 def make_folder(curpath, title):
     folder_path = os.path.join(curpath,title)
-    print("making dir:",folder_path)
+    #print("making dir:",folder_path)
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     os.chdir(folder_path)
 
-def find_folder_table(html):
-    three = bs(html, "html.parser")
-    folders = three.find('table',{"id":"ctl00_ContentPlaceHolder_ProcessFolderGrid_T"})
-    return folders
+class itslearning_scraper():
+    def __init__(self):
+        self.failure=0
+        self.browser = ms.StatefulBrowser()
+        self.html2text = html2text.HTML2Text()
+        self.start_url = "https://innsida.ntnu.no/lms-ntnu"
+        path = os.path.abspath(os.path.curdir)
+        newpath = os.path.join(path,"scraped")
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+        os.chdir(newpath)
+
+    def login(self, username, password):
+        self.browser.open(self.start_url)
+        self.browser.select_form("form[name=f]")
+        self.browser["feidename"]=username
+        self.browser["password"]=password
+        self.browser.submit_selected()
+        self.browser.select_form("form[action=https://sats.itea.ntnu.no/sso-wrapper/feidelogin]")
+        self.browser.submit_selected()
+
+        self.key = self.browser.session.cookies.get_dict()
+        self.jsession={"JSESSIONID": self.key["JSESSIONID"]}
+        resp = rq.get(self.start_url, cookies=self.jsession)
+
+        self.get_cookies(resp)
+        self.find_courses()
+
+    def get_cookies(self, resp):
+        split_cookie = resp.request.headers["Cookie"].split(";")
+        self.cookies = dict([[elm.split("=",1)[0].strip(), elm.split("=",1)[1].strip()] for elm in split_cookie])
+
+    def enter(self):
+        username = input("Enter NTNU-username: ")
+        password = getpass("Enter your NTNU-password: ")
+        self.login(username,password)
+
+    def find_courses(self):
+        resp = rq.get("https://ntnu.itslearning.com/Course/AllCourses.aspx", cookies=self.cookies)
+        print(resp.url)
+
+        three = bs(resp.text, "html.parser")
+        course = three.find("table",{"class":"h-table-show-first-4-columns"})
+        active_courses = course.find_all("a",{"class":"ccl-iconlink"})
+        courses = {}
+
+        for link in active_courses:
+            courses[link.get("href")]=link.contents[0].contents[0]
+        self.courses = courses
 
 
-def download_link(link, title):
-            print("Trying to download: {}".format(link))
-            r = rq.get(link, cookies=itl_cookies, stream=True)
-            print(r.url)
-            try:
-                filename = re.search('FileName=(.+?)&',r.url).group(1)
-            except:
-                filename = title
-                global failure
-                failure += 1
-            print(filename)
-            filename = os.path.join(os.path.abspath(os.path.curdir),filename)
-            with open(filename, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-            print("complete")
-import sys
-
-def find_file(html):
-    try:
+    def find_folder_table(self,html):
         three = bs(html, "html.parser")
-    except:
-        print(html)
-        print(type(html))
-        print(html.find_all('a'))
-        sys.exit(1)
-    links = three.find_all('a')
-    #print(links)
+        folders = three.find('table',{"id":"ctl00_ContentPlaceHolder_ProcessFolderGrid_T"})
+        return folders
 
-    for link in links:
-        if "download.aspx" in link.get("href"):
-            download_link(base_url+link.get("href")[2:], failure)
-        elif "DownloadRedirect.ashx" in link.get("href"):
-            title = link.contents[1].contents[0]
-            download_link(link.get("href"), title)
-            #print(r.text)
+    def download_link(self, link, title):
+        print("Trying to download: {}".format(link))
+        r = rq.get(link, cookies=self.cookies, stream=True)
+        try:
+            filename = re.search('FileName=(.+?)&',r.url).group(1)
+        except:
+            filename = title
+            self.failure += 1
+        print("File created with name:",filename)
+        filename = os.path.join(os.path.abspath(os.path.curdir),filename)
+        with open(filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+        print("complete")
 
-def find_essay_files(html):
-    three = bs(html, "html.parser")
-    attached_files=three.find("div", {"id":"EssayDetailedInformation_FileListWrapper_FileList"})
-    handin_files=three.find("div", {"id":"DF_FileList"})
-    text=three.find("div", {"class":"h-userinput itsl-assignment-description"})
-    if text:
-        title = three.find("span", {"id":"ctl05_TT"}).contents[0]
-        text = h.handle(str(text))
+    def find_file(self, html):
+        try:
+            three = bs(html, "html.parser")
+        except:
+            print(html)
+            print(type(html))
+            print(html.find_all('a'))
+            sys.exit(1)
+        links = three.find_all('a')
+
+        for link in links:
+            if "download.aspx" in link.get("href"):
+                Process(target=self.download_link, args=(base_url+link.get("href")[2:], self.failure)).start()
+            elif "DownloadRedirect.ashx" in link.get("href"):
+                title = link.contents[1].contents[0]
+                Process(target=self.download_link, args=(link.get("href"), title)).start()
+
+    def find_essay_files(self, html):
+        three = bs(html, "html.parser")
+        attached_files=three.find("div", {"id":"EssayDetailedInformation_FileListWrapper_FileList"})
+        handin_files=three.find("div", {"id":"DF_FileList"})
+        text=three.find("div", {"class":"h-userinput itsl-assignment-description"})
+
+        if text:
+            title = three.find("span", {"id":"ctl05_TT"}).contents[0]
+            text = self.html2text.handle(str(text))
+            fp = os.path.join(os.path.abspath(os.path.curdir), title)
+            #convert to md?
+            with open(fp+".md", "wb") as note:
+                note.write(bytes(text.encode("utf-8")))
+                note.close()
+
+        if attached_files:
+            self.find_file(str(attached_files))
+
+        if handin_files:
+            self.find_file(str(handin_files))
+
+    def find_link(self,html):
+
+        three = bs(html, "html.parser")
+        section_link = three.find("a", {"id":"ctl00_ctl00_MainFormContent_ResourceContent_Link"})
+        if section_link is None:
+            link = three.find("a",{"id":"ctl00_ctl00_MainFormContent_ResourceContent_DownloadButton_DownloadLink"})
+            try:
+                print(link.get("download"))
+                Process(target=self.download_link,args=(link.get("href"), link.get("download"))).start()
+            except:
+                print("Broken download link")
+                pass
+            return
+
+        print(section_link)
+        target = section_link.get("href")
+        print(target)
+        fp = os.path.join(os.path.abspath(os.path.curdir), "".join(target.split('/')))
+        print("filepath:", fp)
+        with  open(fp+".url", "wb") as shortcut:
+            shortcut.write(b'[InternetShortcut]\n')
+            shortcut.write(bytes(r'URL={}'.format(target).encode("utf-8")))
+            shortcut.close()
+
+    def save_note(self,html):
+        three = bs(html, "html.parser")
+        title = three.find("h1").contents[0].contents[1]
+        print(title)
+        text = three.find("div", {"class":"h-userinput"})
+        print(text.contents[0])
+        text = self.html2text.handle(str(text))
         fp = os.path.join(os.path.abspath(os.path.curdir), title)
         #convert to md?
         with open(fp+".md", "wb") as note:
             note.write(bytes(text.encode("utf-8")))
             note.close()
-    if attached_files:
-        find_file(str(attached_files))
-    if handin_files:
-        find_file(str(handin_files))
 
-def find_link(html):
-
-    three = bs(html, "html.parser")
-    section_link = three.find("a", {"id":"ctl00_ctl00_MainFormContent_ResourceContent_Link"})
-    if section_link is None:
-        link = three.find("a",{"id":"ctl00_ctl00_MainFormContent_ResourceContent_DownloadButton_DownloadLink"})
-        print(link.get("download"))
-        download_link(link.get("href"), link.get("download"))
-        return
-
-    print(section_link)
-    target = section_link.get("href")
-    print(target)
-    fp = os.path.join(os.path.abspath(os.path.curdir), "".join(target.split('/')))
-    print("filepath:", fp)
-    with  open(fp+".url", "wb") as shortcut:
-        shortcut.write(b'[InternetShortcut]\n')
-        shortcut.write(bytes(r'URL={}'.format(target).encode("utf-8")))
-        shortcut.close()
-
-def save_note(html):
-    three = bs(html, "html.parser")
-    title = three.find("h1").contents[0].contents[1]
-    print(title)
-    text = three.find("div", {"class":"h-userinput"})
-    print(text.contents[0])
-    text = h.handle(str(text))
-    fp = os.path.join(os.path.abspath(os.path.curdir), title)
-    #convert to md?
-    with open(fp+".md", "wb") as note:
-        note.write(bytes(text.encode("utf-8")))
-        note.close()
-
-def find_files(folders):
+    def find_files(self,folders):
         for link in folders.find_all('a'):
             if "File" in link.get("href"):
-                r = rq.get(base_url+link.get("href"), cookies=itl_cookies)
-                find_file(r.text)
+                r = rq.get(base_url+link.get("href"), cookies=self.cookies)
+                self.find_file(r.text)
 
             elif "LearningToolElement" in link.get("href"):
-                r = rq.get(base_url+link.get("href"), cookies=itl_cookies)
+                r = rq.get(base_url+link.get("href"), cookies=self.cookies)
                 three = bs(r.text, "html.parser")
                 iframe = three.find('iframe')
                 print(iframe.get("src"))
                 if iframe is not None:
                     url = iframe.get("src")
-                    r = rq.get(url, cookies=itl_cookies)
-                    link = find_link(r.text)
+                    r = rq.get(url, cookies=self.cookies)
+                    link = self.find_link(r.text)
 
             elif "/note/View_Note" in link.get("href"):
-                r = rq.get(base_url+link.get("href"), cookies=itl_cookies)
+                r = rq.get(base_url+link.get("href"), cookies=self.cookies)
                 print(r.url)
-                save_note(r.text)
+                self.save_note(r.text)
 
             elif "folder" in link.get("href"):
                 #print(link)
                 itl_path = os.path.join(os.path.abspath(os.path.curdir))
                 title = link.contents[0]
                 make_folder(itl_path, title)
-                r = rq.get(base_url+link.get("href"), cookies=itl_cookies)
-                table = find_folder_table(r.text)
+                r = rq.get(base_url+link.get("href"), cookies=self.cookies)
+                table = self.find_folder_table(r.text)
                 #print(table)
-                find_files(table)
+                self.find_files(table)
                 os.chdir('..')
                 #print(r.url)
 
@@ -204,37 +204,43 @@ def find_files(folders):
                 itl_path = os.path.join(os.path.abspath(os.path.curdir))
                 title = link.contents[0]
                 make_folder(itl_path, title)
-                r = rq.get(base_url+link.get("href"), cookies=itl_cookies)
-                find_essay_files(r.text)
+                r = rq.get(base_url+link.get("href"), cookies=self.cookies)
+                self.find_essay_files(r.text)
                 os.chdir('..')
 
+    def download_all(self):
+        p  = []
+        for link in self.courses:
+            r = rq.get(base_url+link, cookies=self.cookies)
+            course_path = os.path.join(os.path.abspath(os.path.curdir))
+            make_folder(course_path, self.courses[link])
+            folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
+            print("folder id",folder_id)
+            print("folder_url"+folder_id)
+            r = rq.get(folder_url+folder_id, cookies=self.cookies)
+            print(r.url)
+            table = self.find_folder_table(r.text)
+            Process(target=self.find_files, args=(table,)).start()
+            os.chdir('..')
 
+    def download_one(self):
+        course_url = input("Emne link:")
+        folder_title=input("folder title:")
+        r = rq.get(course_url, cookies=self.cookies)
+        course_path = os.path.join(os.path.abspath(os.path.curdir))
+        make_folder(course_path, folder_title)
+        folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
+        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
+        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
+        table = self.find_folder_table(r.text)
+        self.find_files(table)
+
+    def get_courses(self):
+        return self.courses
 
 #print(args.session_cookie)
 #key = args.session_cookie
-folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
-course_url = input("Emne link or leave blank to download all:")
-if course_url:
-    folder_title=input("folder title:")
-    r = rq.get(course_url, cookies=itl_cookies)
-    course_path = os.path.join(os.path.abspath(os.path.curdir))
-    make_folder(course_path, folder_title)
-    folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
-    r = rq.get(folder_url+folder_id, cookies=itl_cookies)
-    r = rq.get(folder_url+folder_id, cookies=itl_cookies)
-    table = find_folder_table(r.text)
-    find_files(table)
-else:
-    for course in courses:
-        r = rq.get(base_url+course, cookies=itl_cookies)
-        course_path = os.path.join(os.path.abspath(os.path.curdir))
-        make_folder(course_path, course_title[course])
-        folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
-        print("folder id",folder_id)
-        print("folder_url"+folder_id)
-        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
-        print(r.url)
-        table = find_folder_table(r.text)
-        find_files(table)
-        os.chdir('..')
-
+if __name__ == '__main__':
+    scraper = itslearning_scraper()
+    scraper.enter()
+    scraper.download_all()
