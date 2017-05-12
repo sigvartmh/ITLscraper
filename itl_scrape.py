@@ -225,12 +225,12 @@ class itslearning_scraper():
 
     def download_one(self, url):
         folder_title=input("folder title:")
-        r = rq.get(course_url, cookies=self.cookies)
+        r = rq.get(url, cookies=self.cookies)
         course_path = os.path.join(os.path.abspath(os.path.curdir))
         make_folder(course_path, folder_title)
         folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
-        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
-        r = rq.get(folder_url+folder_id, cookies=itl_cookies)
+        r = rq.get(folder_url+folder_id, cookies=self.cookies)
+        r = rq.get(folder_url+folder_id, cookies=self.cookies)
         table = self.find_folder_table(r.text)
         self.find_files(table)
 
