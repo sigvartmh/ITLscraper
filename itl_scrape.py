@@ -4,7 +4,9 @@ import re
 import requests as rq
 import mechanicalsoup as ms
 import html2text
-
+import multiprocessing
+import bs4
+import getpass
 from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
@@ -250,7 +252,7 @@ class itslearning_scraper():
                 if not title:
                     title = "Failed to name"+str(self.failure)
                     self.failure +=1
-                make_folder(itl_path, title)
+                make_folder(itl_path, str(title))
                 r = rq.get(base_url+link.get("href"), cookies=self.cookies)
                 table = self.find_folder_table(r.text)
                 #print(table)
@@ -262,7 +264,7 @@ class itslearning_scraper():
                 print("read_essay:",link.get("href"))
                 itl_path = os.path.join(os.path.abspath(os.path.curdir))
                 title = link.contents[0]
-                make_folder(itl_path, title)
+                make_folder(itl_path, str(title))
                 r = rq.get(base_url+link.get("href"), cookies=self.cookies)
                 self.find_essay_files(r.text)
                 os.chdir('..')
@@ -321,9 +323,8 @@ class itslearning_scraper():
 if __name__ == '__main__':
     scraper = itslearning_scraper()
     scraper.enter()
-    scraper.find_all_courses()
-    #url = input("Enter course url or press enter to download all active courses:")
-    #if url:
-    #    scraper.download_one(url)
-    #else:
-    #    scraper.download_all()
+    url = input("Enter course url or press enter to download all active courses:")
+    if url:
+        scraper.download_one(url)
+    else:
+        scraper.download_all()
