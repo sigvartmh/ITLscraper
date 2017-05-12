@@ -7,6 +7,7 @@ import html2text
 import multiprocessing
 import bs4
 import getpass
+
 from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
@@ -15,6 +16,7 @@ from getpass import getpass
 
 base_url = "https://ntnu.itslearning.com/"
 folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
+
 def make_folder(curpath, title):
     folder_path = os.path.join(curpath,title)
     #print("making dir:",folder_path)
@@ -28,8 +30,10 @@ class itslearning_scraper():
         self.browser = ms.StatefulBrowser()
         self.html2text = html2text.HTML2Text()
         self.start_url = "https://innsida.ntnu.no/lms-ntnu"
-        path = os.path.abspath(os.path.curdir)
-        newpath = os.path.join(path,"scraped")
+        #path = os.path.abspath(os.path.curdir)
+
+    def select_path(self, path):
+        newpath = os.path.join(path, "scraped")
         if not os.path.exists(newpath):
             os.makedirs(newpath)
         os.chdir(newpath)

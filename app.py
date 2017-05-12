@@ -1,5 +1,7 @@
 import appJar
 import itl_scrape
+import os
+
 from appJar import gui
 from itl_scrape import itslearning_scraper
 
@@ -30,6 +32,12 @@ def select_all(btn):
         app.setCheckBox(courses[label], ticked=True, callFunction=False)
     print("select all")
 
+def select_folder(btn):
+    path = app.directoryBox(title="Folder to save into", dirName=None)
+    print(path)
+    app.setLabel("path", path)
+    scraper.select_path(path)
+
 def press(btn):
     user = app.getEntry("feideuser")
     password = app.getEntry("password")
@@ -56,9 +64,18 @@ def press(btn):
 
     app.stopLabelFrame()
     print(space)
-    app.addButton("Download", download, space+2, 0)
-    app.addButton("Select none", select_none, space+2, 1)
-    app.addButton("Select all", select_all, space+2, 3)
+    app.startLabelFrame("Select folder")
+    app.addButton("Chose folder", select_folder, space+2, 0, 0)
+    path = os.path.abspath(os.path.curdir)
+    app.addLabel("path", path, space+2, 1)
+    app.stopLabelFrame()
+    app.startLabelFrame("Optional Actions")
+    app.addButton("Select none", select_none, 0, 0, 0)
+    app.addButton("Select all", select_all, 0, 1, 0)
+    app.stopLabelFrame()
+    app.startLabelFrame("Final step")
+    app.addButton("Download", download, 0, 0, 2)
+    app.stopLabelFrame()
 
 app.startLabelFrame("It's Learning time")
 app.setSticky("ew")
@@ -71,5 +88,4 @@ app.addSecretEntry("password", 1 , 1)
 app.stopLabelFrame()
 app.addButton("Login", press, 2, 0, 2)
 app.setFocus("feideuser")
-
 app.go()
