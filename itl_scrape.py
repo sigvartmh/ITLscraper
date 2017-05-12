@@ -244,6 +244,9 @@ class itslearning_scraper():
                 #print(link)
                 itl_path = os.path.join(os.path.abspath(os.path.curdir))
                 title = link.contents[0]
+                if not title:
+                    title = "Failed to name"+str(self.failure)
+                    self.failure +=1
                 make_folder(itl_path, title)
                 r = rq.get(base_url+link.get("href"), cookies=self.cookies)
                 table = self.find_folder_table(r.text)
