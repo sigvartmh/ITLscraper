@@ -10,6 +10,8 @@ from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
 
+
+
 base_url = "https://ntnu.itslearning.com/"
 folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
 def make_folder(curpath, title):
@@ -45,7 +47,7 @@ class itslearning_scraper():
         resp = rq.get(self.start_url, cookies=self.jsession)
 
         self.get_cookies(resp)
-        self.find_courses()
+        self.find_all_courses()
 
     def get_cookies(self, resp):
         split_cookie = resp.request.headers["Cookie"].split(";")
@@ -68,6 +70,57 @@ class itslearning_scraper():
         for link in active_courses:
             courses[link.get("href")]=link.contents[0].contents[0]
         self.courses = courses
+
+    def find_all_courses(self):
+        get_all = { "__EVENTARGUMENT":"",
+        "__EVENTTARGET":"ctl26$ctl00$ctl25$ctl02",
+        "__EVENTVALIDATION":"",
+        "__LASTFOCUS":"",
+        "__VIEWSTATE":"",
+        "__VIEWSTATEGENERATOR":"",
+        "ctl26$ctl00$ctl25$ctl02":"All",
+        }
+
+        course_url = "https://ntnu.itslearning.com/Course/AllCourses.aspx"
+        self.browser.open(course_url)
+        resp = rq.get(course_url, cookies=self.cookies)
+
+        target = "ctl26$ctl00$ctl25$ctl02"
+        three = bs(resp.text, "html.parser")
+
+        __VIEWSTATE = bs(resp.text, "html.parser").find("input", {"id":"__VIEWSTATE"}).attrs["value"]
+        __EVENTVALIDATION = bs(resp.text, "html.parser").find("input", {"id":"__EVENTVALIDATION"}).attrs["value"]
+        __VIEWSTATEGENERATOR = bs(resp.text, "html.parser").find("input", {"id":"__VIEWSTATEGENERATOR"}).attrs["value"]
+
+        get_all["__VIEWSTATE"] = __VIEWSTATE
+        get_all["__EVENTVALIDATION"] = __EVENTVALIDATION
+        get_all["__VIEWSTATEGENERATOR"]=__VIEWSTATEGENERATOR
+        headers = resp.headers
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+        post = rq.post(course_url, cookies=self.cookies, data=get_all)
+
+        __VIEWSTATE = bs(post.text, "html.parser").find("input", {"id":"__VIEWSTATE"}).attrs["value"]
+        __EVENTVALIDATION = bs(post.text, "html.parser").find("input", {"id":"__EVENTVALIDATION"}).attrs["value"]
+        __VIEWSTATEGENERATOR = bs(post.text, "html.parser").find("input", {"id":"__VIEWSTATEGENERATOR"}).attrs["value"]
+        get_all["ctl26$PageSizeSelect"]="200"
+        get_all["__EVENTTARGET"]="ctl26:7:Pagesize:100"
+        post = rq.post(course_url, cookies=self.cookies, data=get_all)
+
+        with open("courses.html","wb") as f:
+            f.write(bytes(post.text.encode("utf-8")))
+            f.close()
+
+        three = bs(post.text, "html.parser")
+        course = three.find("table",{"class":"h-table-show-first-4-columns"})
+        active_courses = course.find_all("a",{"class":"ccl-iconlink"})
+        courses = {}
+        for link in active_courses:
+            courses[link.get("href")]=link.contents[0].contents[0]
+        self.course = courses
+        return courses
+
+    def get_itl_cookies(self):
+        return self.cookies
 
 
     def find_folder_table(self,html):
@@ -234,16 +287,37 @@ class itslearning_scraper():
         table = self.find_folder_table(r.text)
         self.find_files(table)
 
+    def download_links(self, links):
+        for link in links:
+            r = rq.get(base_url+link, cookies=self.cookies)
+            course_path = os.path.join(os.path.abspath(os.path.curdir))
+            make_folder(course_path, links[link])
+            folder_id = re.search("FolderID=(.+?)'",r.text).group(1)
+            print("folder id",folder_id)
+            print("folder_url"+folder_id)
+            r = rq.get(folder_url+folder_id, cookies=self.cookies)
+            print(r.url)
+            table = self.find_folder_table(r.text)
+            Process(target=self.find_files, args=(table,)).start()
+            os.chdir('..')
+
     def get_courses(self):
         return self.courses
+
+    def get_all_courses(self):
+        self.browser.open("https://ntnu.itslearning.com/Course%2fAllCourses.aspx")
+        p = self.browser.get_current_page()
+        print(p)
+        print(self.browser.session.cookies.get_dict())
 
 #print(args.session_cookie)
 #key = args.session_cookie
 if __name__ == '__main__':
     scraper = itslearning_scraper()
     scraper.enter()
-    url = input("Enter course url or press enter to download all active courses:")
-    if url:
-        scraper.download_one(url)
-    else:
-        scraper.download_all()
+    scraper.find_all_courses()
+    #url = input("Enter course url or press enter to download all active courses:")
+    #if url:
+    #    scraper.download_one(url)
+    #else:
+    #    scraper.download_all()
