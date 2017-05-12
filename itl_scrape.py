@@ -1,7 +1,6 @@
 import os
 import sys
 import re
-import argparse
 import requests as rq
 import mechanicalsoup as ms
 import html2text
@@ -35,19 +34,23 @@ class itslearning_scraper():
 
     def login(self, username, password):
         self.browser.open(self.start_url)
-        self.browser.select_form("form[name=f]")
-        self.browser["feidename"]=username
-        self.browser["password"]=password
-        self.browser.submit_selected()
-        self.browser.select_form("form[action=https://sats.itea.ntnu.no/sso-wrapper/feidelogin]")
-        self.browser.submit_selected()
-
-        self.key = self.browser.session.cookies.get_dict()
-        self.jsession={"JSESSIONID": self.key["JSESSIONID"]}
-        resp = rq.get(self.start_url, cookies=self.jsession)
-
-        self.get_cookies(resp)
-        self.find_all_courses()
+        try:
+            self.browser.select_form("form[name=f]")
+            self.browser["feidename"]=username
+            self.browser["password"]=password
+            self.browser.submit_selected()
+        except:
+            print("Something weird happened")
+        try:
+            self.browser.select_form("form[action=https://sats.itea.ntnu.no/sso-wrapper/feidelogin]")
+            self.browser.submit_selected()
+            self.key = self.browser.session.cookies.get_dict()
+            self.jsession={"JSESSIONID": self.key["JSESSIONID"]}
+            resp = rq.get(self.start_url, cookies=self.jsession)
+            self.get_cookies(resp)
+            self.find_all_courses()
+        except:
+            print("Didn't get login redirect")
 
     def get_cookies(self, resp):
         split_cookie = resp.request.headers["Cookie"].split(";")

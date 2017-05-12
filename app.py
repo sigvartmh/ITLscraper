@@ -1,3 +1,4 @@
+import appJar
 from appJar import gui
 from itl_scrape import itslearning_scraper
 
