@@ -224,9 +224,15 @@ class itslearning_scraper():
         text = self.html2text.handle(str(text))
         fp = os.path.join(os.path.abspath(os.path.curdir), title)
         #convert to md?
-        with open(fp+".md", "wb") as note:
-            note.write(bytes(text.encode("utf-8")))
-            note.close()
+        try:
+            with open(fp+".md", "wb") as note:
+                note.write(bytes(text.encode("utf-8")))
+                note.close()
+        except FileNotFoundError:
+            if "/" in title:
+                print("File contains slash '%s'. Skipping" % title)
+            else:
+                print("File not found '%s'" % title)
 
     def find_files(self,folders):
         for link in folders.find_all('a'):
