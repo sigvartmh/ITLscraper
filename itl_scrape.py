@@ -11,13 +11,14 @@ import getpass
 from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
-
+from slugify import slugify
 
 
 base_url = "https://ntnu.itslearning.com/"
 folder_url = "https://ntnu.itslearning.com/Folder/processfolder.aspx?FolderID="
 
 def make_folder(curpath, title):
+    title = slugify(title)
     folder_path = os.path.join(curpath,title)
     #print("making dir:",folder_path)
     if not os.path.exists(folder_path):
@@ -146,6 +147,7 @@ class itslearning_scraper():
             filename = title
             self.failure += 1
         print("File created with name:",filename)
+        filename = slugify(filename)
         filename = os.path.join(os.path.abspath(os.path.curdir),filename)
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
@@ -179,6 +181,7 @@ class itslearning_scraper():
         if text:
             title = three.find("span", {"id":"ctl05_TT"}).contents[0]
             text = self.html2text.handle(str(text))
+            title = slugify(title)
             fp = os.path.join(os.path.abspath(os.path.curdir), title)
             #convert to md?
             with open(fp+".md", "wb") as note:
@@ -208,7 +211,8 @@ class itslearning_scraper():
         print(section_link)
         target = section_link.get("href")
         print(target)
-        fp = os.path.join(os.path.abspath(os.path.curdir), "".join(target.split('/')))
+
+        fp = os.path.join(os.path.abspath(os.path.curdir), slugify("".join(target.split('/'))))
         print("filepath:", fp)
         with  open(fp+".url", "wb") as shortcut:
             shortcut.write(b'[InternetShortcut]\n')
@@ -222,6 +226,7 @@ class itslearning_scraper():
         text = three.find("div", {"class":"h-userinput"})
         print(text.contents[0])
         text = self.html2text.handle(str(text))
+        title = slugify(title)
         fp = os.path.join(os.path.abspath(os.path.curdir), title)
         #convert to md?
         try:
