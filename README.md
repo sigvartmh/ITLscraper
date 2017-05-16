@@ -1,6 +1,9 @@
 # ITLscraper
 Scrapes files from It's learning and stores them in categorised folders
 
+## Requirements
+Python>= 3.x
+
 ## How to use
 ```
 git clone https://github.com/sigvartmh/ITLscraper
