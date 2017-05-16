@@ -15,7 +15,7 @@ def download(btn):
         selected = app.getCheckBox(courses[label])
         if selected:
             course_links[label]=courses[label]
-    print(course_links)
+    #print(course_links.encode('utf-8'))
 
     print("Download selected")
     scraper.download_links(course_links)

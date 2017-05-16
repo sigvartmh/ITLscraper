@@ -146,9 +146,10 @@ class itslearning_scraper():
         except:
             filename = title
             self.failure += 1
-        print("File created with name:",filename)
         filename = slugify(filename)
+        print("File created with name:",filename)
         filename = os.path.join(os.path.abspath(os.path.curdir),filename)
+        print("File created with path:",filename)
         with open(filename, 'wb') as f:
             for chunk in r.iter_content(chunk_size=1024):
                 if chunk:
