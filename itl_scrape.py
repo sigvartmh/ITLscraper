@@ -343,4 +343,11 @@ if __name__ == '__main__':
     if url:
         scraper.download_one(url)
     else:
-        scraper.download_all()
+        courses = scraper.find_all_courses()
+        for key in courses:
+            print(courses[key])
+        ans = input("Continue? Y/N ")
+        if "y" in ans.lower():
+            scraper.download_all()
+        else:
+            exit()
