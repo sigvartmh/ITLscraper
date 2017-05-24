@@ -9,7 +9,7 @@ app = gui("It's learning scraper")
 scraper = itslearning_scraper()
 
 def download(btn):
-    courses = scraper.find_all_courses()
+    courses = scraper.get_courses()
     course_links = {}
     for i, label in enumerate(courses):
         selected = app.getCheckBox(courses[label])
@@ -52,7 +52,7 @@ def press(btn):
 
     app.startLabelFrame("Courses to download")
     j = 0
-    k = 1
+    k = 0
     for i, label in enumerate(courses):
         app.addCheckBox(courses[label],  k, j )
         #app.setCheckBox(courses[label],ticked=True, callFunction=False)
@@ -70,8 +70,8 @@ def press(btn):
     app.addLabel("path", path, space+2, 1)
     app.stopLabelFrame()
     app.startLabelFrame("Optional Actions")
-    app.addButton("Select none", select_none, 0, 0, 0)
-    app.addButton("Select all", select_all, 0, 1, 0)
+    app.addButton("Select all", select_all, 0, 0, 0)
+    app.addButton("Select none", select_none, 0, 1, 0)
     app.stopLabelFrame()
     app.startLabelFrame("Final step")
     app.addButton("Download", download, 0, 0, 2)

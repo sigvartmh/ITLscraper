@@ -119,7 +119,7 @@ class itslearning_scraper():
 
         for link in active_courses:
             self.courses[link.get("href")]=link.contents[0].contents[0]
-
+        return self.courses
         #return courses
 
     def get_itl_cookies(self):
@@ -336,7 +336,6 @@ if __name__ == '__main__':
     if url:
         scraper.download_one(url)
     else:
-        #courses = scraper.find_all_courses()
         courses = scraper.get_courses()
         for key in courses:
             print(courses[key])
