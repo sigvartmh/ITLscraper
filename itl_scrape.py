@@ -1,5 +1,12 @@
 import os
 import sys
+
+import platform #WINDOWS HACK
+if platform.system() is 'Windows':
+    from threading import Thread as Process
+else:
+    from multiprocessing import Process
+
 import re
 import requests as rq
 import mechanicalsoup as ms
@@ -7,8 +14,6 @@ import html2text
 import multiprocessing
 import bs4
 import getpass
-
-from multiprocessing import Process
 from bs4 import BeautifulSoup as bs
 from getpass import getpass
 from slugify import slugify
@@ -32,6 +37,7 @@ class itslearning_scraper():
         self.html2text = html2text.HTML2Text()
         self.start_url = "https://innsida.ntnu.no/lms-ntnu"
         #path = os.path.abspath(os.path.curdir)
+        self.courses = {}
 
     def select_path(self, path):
         newpath = os.path.join(path, "scraped")
@@ -67,19 +73,6 @@ class itslearning_scraper():
         username = input("Enter NTNU-username: ")
         password = getpass("Enter your NTNU-password: ")
         self.login(username,password)
-
-    def find_courses(self):
-        resp = rq.get("https://ntnu.itslearning.com/Course/AllCourses.aspx", cookies=self.cookies)
-        print(resp.url)
-
-        three = bs(resp.text, "html.parser")
-        course = three.find("table",{"class":"h-table-show-first-4-columns"})
-        active_courses = course.find_all("a",{"class":"ccl-iconlink"})
-        courses = {}
-
-        for link in active_courses:
-            courses[link.get("href")]=link.contents[0].contents[0]
-        self.courses = courses
 
     def find_all_courses(self):
         get_all = { "__EVENTARGUMENT":"",
@@ -123,11 +116,11 @@ class itslearning_scraper():
         three = bs(post.text, "html.parser")
         course = three.find("table",{"class":"h-table-show-first-4-columns"})
         active_courses = course.find_all("a",{"class":"ccl-iconlink"})
-        courses = {}
+
         for link in active_courses:
-            courses[link.get("href")]=link.contents[0].contents[0]
-        self.course = courses
-        return courses
+            self.courses[link.get("href")]=link.contents[0].contents[0]
+
+        #return courses
 
     def get_itl_cookies(self):
         return self.cookies
@@ -343,10 +336,17 @@ if __name__ == '__main__':
     if url:
         scraper.download_one(url)
     else:
-        courses = scraper.find_all_courses()
+        #courses = scraper.find_all_courses()
+        courses = scraper.get_courses()
         for key in courses:
             print(courses[key])
         ans = input("Continue? Y/N ")
+        path = input("You want to download it in{} if not enter new path:".format(os.path.abspath(os.path.curdir)))
+        if path:
+            make_folder(path,"itl_scraped")
+        else:
+            path = os.path.abspath(os.path.curdir)
+            make_folder(path,"itl_scraped")
         if "y" in ans.lower():
             scraper.download_all()
         else:

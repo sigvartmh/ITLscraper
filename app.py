@@ -54,7 +54,7 @@ def press(btn):
     j = 0
     k = 1
     for i, label in enumerate(courses):
-        app.addCheckBox(courses[label],  k, j, )
+        app.addCheckBox(courses[label],  k, j )
         #app.setCheckBox(courses[label],ticked=True, callFunction=False)
         k += 1
         if k >= 20:
