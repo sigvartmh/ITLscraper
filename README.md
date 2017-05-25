@@ -23,4 +23,4 @@ python app.py
 ```
 sudo pip install -r requirements.txt
 ```
-Scrapes every course which is not archived
+Scrapes every course you have taken that is not deleted except community courses
