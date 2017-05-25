@@ -140,6 +140,7 @@ class itslearning_scraper():
             filename = title
             self.failure += 1
         filename = slugify(filename)
+        filename = filename[::-1].replace('-','.',1)[::-1] #Carl fix
         print("File created with name:",filename)
         filename = os.path.join(os.path.abspath(os.path.curdir),filename)
         print("File created with path:",filename)
