@@ -2,7 +2,9 @@
 Scrapes files from It's learning and stores them in categorised folders
 
 ## Requirements
-Python>= 3.x
+* Python>= 3.x
+* [Git](https://git-scm.com/)
+* [Pip](https://pip.pypa.io/en/stable/installing/)
 
 ## How to use
 ```
