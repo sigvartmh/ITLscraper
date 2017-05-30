@@ -6,8 +6,15 @@ Scrapes files from It's learning and stores them in categorised folders
 * [Git](https://git-scm.com/)
 * [Pip](https://pip.pypa.io/en/stable/installing/)
 
-## How to use
+## Install python3 OSX
+Install [homebrew](https://brew.sh/index_no.html)
 ```
+brew install python3
+```
+It's important to remember that when it's installed through homebrew you replace the `python` command with `python3` and `pip` with `pip3`
+
+## How to use
+```bash
 git clone https://github.com/sigvartmh/ITLscraper
 cd ITLscraper
 pip install -r requirements.txt
@@ -25,4 +32,4 @@ python app.py
 ```
 sudo pip install -r requirements.txt
 ```
-Scrapes every course you have taken that is not deleted except community courses
+Scrapes every course you have taken that is not deleted except community courses.
