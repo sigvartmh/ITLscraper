@@ -235,6 +235,8 @@ class itslearning_scraper():
                 print("File not found '%s'" % title)
 
     def find_files(self,folders):
+        if folders is None: # I don't know why this becomes null --hbirchtree
+            return
         for link in folders.find_all('a'):
             if "File" in link.get("href"):
                 r = rq.get(base_url+link.get("href"), cookies=self.cookies)
